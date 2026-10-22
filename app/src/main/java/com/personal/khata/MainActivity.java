@@ -76,14 +76,19 @@ public class MainActivity extends Activity {
                     ContentValues values = new ContentValues();
                     values.put(MediaStore.MediaColumns.DISPLAY_NAME, safeName);
                     values.put(MediaStore.MediaColumns.MIME_TYPE, "application/json");
-                    values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download");
+                    values.put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS + "/");
+                    values.put(MediaStore.MediaColumns.IS_PENDING, 1);
                     uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
                     if (uri == null) throw new IOException("Could not create backup file");
-                    try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                    try (OutputStream out = getContentResolver().openOutputStream(uri, "w")) {
                         if (out == null) throw new IOException("Could not open backup file");
                         out.write(content.getBytes("UTF-8"));
                         out.flush();
                     }
+                    ContentValues published = new ContentValues();
+                    published.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                    int updatedRows = getContentResolver().update(uri, published, null, null);
+                    if (updatedRows < 1) throw new IOException("Could not publish backup file");
                 } else {
                     File dir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
                     if (!dir.exists() && !dir.mkdirs()) throw new IOException("Could not create Downloads folder");
