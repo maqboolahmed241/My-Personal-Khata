@@ -2,15 +2,23 @@ package com.personal.khata;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Build;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.ValueCallback;
+import android.webkit.JavascriptInterface;
 import android.content.Intent;
+import android.content.ContentValues;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.widget.Toast;
 import android.graphics.Color;
+import java.io.OutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class MainActivity extends Activity {
     private WebView webView;
@@ -30,6 +38,7 @@ public class MainActivity extends Activity {
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
         settings.setSupportMultipleWindows(false);
         webView.setBackgroundColor(Color.rgb(18,17,15));
+        webView.addJavascriptInterface(new KhataBridge(), "KhataBridge");
         webView.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 if (url != null && (url.startsWith("https://") || url.startsWith("http://") || url.startsWith("mailto:"))) {
@@ -52,6 +61,42 @@ public class MainActivity extends Activity {
         });
         setContentView(webView);
         webView.loadUrl("file:///android_asset/index.html");
+    }
+    private class KhataBridge {
+        @JavascriptInterface
+        public void saveBackup(String content, String filename) {
+            if (content == null || filename == null) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "بیک اپ محفوظ نہیں ہو سکا", Toast.LENGTH_LONG).show());
+                return;
+            }
+            String safeName = filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+            try {
+                Uri uri;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ContentValues values = new ContentValues();
+                    values.put(MediaStore.MediaColumns.DISPLAY_NAME, safeName);
+                    values.put(MediaStore.MediaColumns.MIME_TYPE, "application/json");
+                    values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download");
+                    uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                    if (uri == null) throw new IOException("Could not create backup file");
+                    try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                        if (out == null) throw new IOException("Could not open backup file");
+                        out.write(content.getBytes("UTF-8"));
+                        out.flush();
+                    }
+                } else {
+                    File dir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                    if (!dir.exists() && !dir.mkdirs()) throw new IOException("Could not create Downloads folder");
+                    try (FileOutputStream out = new FileOutputStream(new File(dir, safeName))) {
+                        out.write(content.getBytes("UTF-8"));
+                        out.flush();
+                    }
+                }
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "بیک اپ Downloads فولڈر میں محفوظ ہو گیا", Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "بیک اپ محفوظ نہیں ہو سکا۔ دوبارہ کوشش کریں", Toast.LENGTH_LONG).show());
+            }
+        }
     }
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
