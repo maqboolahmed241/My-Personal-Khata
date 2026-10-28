@@ -142,8 +142,41 @@ document.getElementById('pinSubmit').onclick=()=>{
 pinInput.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('pinSubmit').click()});
 // Report helpers
 function reportText(){
- const rows=data.map(x=>`${x.date||''} | ${kindName(x)} | ${x.person||x.category||''} | ${x.note||''} | ${money(x.amount)}`);
- return 'My Personal Khata — رپورٹ\\nتیاری کی تاریخ: '+today()+'\\n\\n'+rows.join('\\n')+'\\n\\nکل اخراجات: '+document.getElementById('spent').textContent+'\\nادھار دیا: '+document.getElementById('lent').textContent+'\\nوصول ہونا باقی: '+document.getElementById('due').textContent;
+ const month=today().slice(0,7);
+ const monthRows=data.filter(x=>String(x.date||'').slice(0,7)===month);
+ const sum=rows=>rows.reduce((s,x)=>s+(Number(x.amount)||0),0);
+ const income=sum(monthRows.filter(x=>x.type==='income'));
+ const expenses=sum(monthRows.filter(x=>x.type==='expense'));
+ const lent=sum(monthRows.filter(x=>x.type==='loan'&&x.kind==='lent'));
+ const received=sum(monthRows.filter(x=>x.type==='loan'&&x.kind==='received'));
+ const borrowed=sum(monthRows.filter(x=>x.type==='loan'&&x.kind==='borrowed'));
+ const repaid=sum(monthRows.filter(x=>x.type==='loan'&&x.kind==='repaid'));
+ const allLent=sum(data.filter(x=>x.type==='loan'&&x.kind==='lent'));
+ const allReceived=sum(data.filter(x=>x.type==='loan'&&x.kind==='received'));
+ const lines=[
+  'مقبول علی — ماہانہ حساب رپورٹ',
+  'مہینہ: '+month,
+  'تیاری کی تاریخ: '+today(),
+  '',
+  'ماہانہ خلاصہ',
+  'کل آمدنی: '+money(income),
+  'کل خرچہ: '+money(expenses),
+  'اس مہینے دیا گیا ادھار: '+money(lent),
+  'اس مہینے واپس وصول شدہ ادھار: '+money(received),
+  'اس مہینے لیا گیا ادھار: '+money(borrowed),
+  'اس مہینے واپس کیا گیا ادھار: '+money(repaid),
+  '',
+  'تمام ریکارڈ کے مطابق باقی وصولی: '+money(Math.max(0,allLent-allReceived)),
+  '',
+  'اس مہینے کی تفصیل'
+ ];
+ if(!monthRows.length) lines.push('اس مہینے کوئی اندراج موجود نہیں۔');
+ else monthRows.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).forEach(x=>{
+  const who=x.person||x.category||'';
+  const note=x.note||'';
+  lines.push((x.date||'')+' — '+kindName(x)+(who?' — '+who:'')+(note?' — '+note:'')+' — '+money(x.amount));
+ });
+ return lines.join('\n');
 }
 document.getElementById('reportPrint').onclick=()=>{
  const w=window.open('','_blank'); if(!w){alert('پرنٹ کے لیے براوزر میں pop-ups کی اجازت دیں');return}
