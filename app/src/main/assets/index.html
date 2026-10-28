@@ -31,7 +31,7 @@ h2{font-size:18px;margin:0 0 10px;color:var(--gold)}.actions{display:flex;gap:8p
 <h2 id="pinTitle" style="margin-top:12px">My Personal Khata</h2><p id="pinHelp">اپنا 4 ہندسوں کا پن کوڈ بنائیں</p>
 <input id="pinInput" type="password" inputmode="numeric" maxlength="6" placeholder="PIN کوڈ" style="text-align:center;letter-spacing:8px;font-size:22px">
 <button id="pinSubmit" class="primary" style="margin-top:12px;width:100%">آگے بڑھیں</button>
-<button id="resetPin" style="margin-top:8px;width:100%">PIN بھول گئے؟ نیا PIN بنائیں</button><p class="notice">یہ ابتدائی PIN حفاظت ہے؛ یہ مضبوط encrypted app lock کا متبادل نہیں۔</p>
+<p class="notice">اپنا PIN تبدیل کرنے کے لیے ایپ کھولنے کے بعد PIN تبدیل کریں کا بٹن استعمال کریں۔</p>
 </div></div>
 <main>
 <section class="cards">
@@ -43,7 +43,7 @@ h2{font-size:18px;margin:0 0 10px;color:var(--gold)}.actions{display:flex;gap:8p
 <div class="card"><small>وصول ہونا باقی</small><div class="amount" id="due">Rs 0</div></div>
 </section>
 <nav>
-<button class="active" data-tab="home">ہوم</button><button data-tab="income">آمدنی درج کریں</button><button data-tab="expense">خرچ درج کریں</button><button data-tab="loan">ادھار / وصولی</button><button data-tab="history">ریکارڈ</button><button data-tab="backup">بیک اپ</button>
+<button class="active" data-tab="home">ہوم</button><button data-tab="income">آمدنی درج کریں</button><button data-tab="expense">خرچ درج کریں</button><button data-tab="loan">ادھار / وصولی</button><button data-tab="history">ریکارڈ</button><button data-tab="backup">بیک اپ</button><button id="changePinBtn" type="button">PIN تبدیل کریں</button>
 </nav>
 <section id="home" class="tab panel"><h2>خوش آمدید</h2><p>اپنا ہر خرچ اور ہر ادھار یہاں درج کریں۔ ریکارڈ اسی براؤزر/موبائل میں محفوظ رہے گا۔</p><p class="notice">اہم: یہ ابتدائی قابلِ آزمائش ورژن ہے۔ اسے APK میں تبدیل کرنے اور Google Drive سے براہِ راست منسلک کرنے کے لیے اگلا Android/Google Drive مرحلہ درکار ہوگا۔</p><div id="recent"></div></section>
 <section id="income" class="tab panel hidden"><h2>نئی آمدنی</h2><form id="incomeForm"><div class="grid">
@@ -127,11 +127,6 @@ let pinMode=localStorage.getItem(PINKEY)?'unlock':'setup';
 const gate=document.getElementById('pinGate'), pinTitle=document.getElementById('pinTitle'), pinHelp=document.getElementById('pinHelp'), pinInput=document.getElementById('pinInput');
 function setupPinView(){pinTitle.textContent='مقبول علی';pinHelp.textContent=pinMode==='setup'?'اپنا 4 سے 6 ہندسوں کا پن کوڈ بنائیں':'اپنا پن کوڈ درج کریں';pinInput.value='';}
 setupPinView();
-document.getElementById('resetPin').onclick=()=>{
- if(confirm('صرف PIN دوبارہ سیٹ ہوگا؛ محفوظ ریکارڈ نہیں مٹیں گے۔ کیا جاری رکھیں؟')){
-  localStorage.removeItem(PINKEY);pinMode='setup';setupPinView();alert('اب نیا 4 سے 6 ہندسوں کا PIN بنائیں۔');
- }
-};
 document.getElementById('pinSubmit').onclick=()=>{
  const v=pinInput.value;
  if(!/^\d{4,6}$/.test(v)){alert('4 سے 6 ہندسوں کا PIN درج کریں');return}
@@ -140,6 +135,19 @@ document.getElementById('pinSubmit').onclick=()=>{
  else{alert('PIN درست نہیں ہے');pinInput.value='';}
 };
 pinInput.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('pinSubmit').click()});
+document.getElementById('changePinBtn').onclick=()=>{
+ const current=prompt('تبدیلی کے لیے اپنا موجودہ PIN درج کریں:');
+ if(current===null)return;
+ if(current!==localStorage.getItem(PINKEY)){alert('موجودہ PIN درست نہیں۔ PIN تبدیل نہیں ہوا۔');return;}
+ const next=prompt('نیا 4 سے 6 ہندسوں کا PIN درج کریں:');
+ if(next===null)return;
+ if(!/^\\d{4,6}$/.test(next)){alert('PIN میں 4 سے 6 ہندسے ہونے چاہئیں۔');return;}
+ const confirmPin=prompt('نیا PIN دوبارہ درج کریں:');
+ if(confirmPin===null)return;
+ if(next!==confirmPin){alert('دونوں PIN ایک جیسے نہیں۔ دوبارہ کوشش کریں۔');return;}
+ localStorage.setItem(PINKEY,next);
+ alert('PIN کامیابی سے تبدیل ہوگیا۔ اگلی بار ایپ کھولنے کے لیے نیا PIN استعمال کریں۔');
+};
 // Report helpers
 function reportText(){
  const from=document.getElementById('reportFrom').value;
