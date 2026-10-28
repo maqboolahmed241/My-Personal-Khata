@@ -141,7 +141,7 @@ document.getElementById('changePinBtn').onclick=()=>{
  if(current!==localStorage.getItem(PINKEY)){alert('موجودہ PIN درست نہیں۔ PIN تبدیل نہیں ہوا۔');return;}
  const next=prompt('نیا 4 سے 6 ہندسوں کا PIN درج کریں:');
  if(next===null)return;
- if(!/^\\d{4,6}$/.test(next)){alert('PIN میں 4 سے 6 ہندسے ہونے چاہئیں۔');return;}
+ if(!/^[0-9]{4,6}$/.test(next)){alert('PIN میں 4 سے 6 ہندسے ہونے چاہئیں۔');return;}
  const confirmPin=prompt('نیا PIN دوبارہ درج کریں:');
  if(confirmPin===null)return;
  if(next!==confirmPin){alert('دونوں PIN ایک جیسے نہیں۔ دوبارہ کوشش کریں۔');return;}
