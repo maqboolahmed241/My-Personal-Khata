@@ -142,7 +142,9 @@ function normalizeLoanRecords(rows){
  return {records:out,changed};
 }
 const normalizedAtLoad=normalizeLoanRecords(data);data=normalizedAtLoad.records;if(normalizedAtLoad.changed)localStorage.setItem(KEY,JSON.stringify(data));
-const today=()=>new Date().toISOString().slice(0,10);document.querySelectorAll('input[name=date]').forEach(x=>x.value=today());
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+function refreshNewEntryDates(){['incomeForm','expenseForm','loanForm'].forEach(id=>{const form=document.getElementById(id);if(form&&!form.dataset.dateTouched){const field=form.elements.date;if(field)field.value=today()}})}
+document.addEventListener('DOMContentLoaded',refreshNewEntryDates);document.querySelectorAll('input[name=date]').forEach(x=>x.value=today());
 const money=n=>'Rs '+Number(n||0).toLocaleString('en-PK',{maximumFractionDigits:2});
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function editRecord(id){
@@ -160,7 +162,7 @@ function deleteRecord(id){
  data.splice(i,1);save();alert('اندراج حذف ہوگیا۔');
 }
 function add(type,obj){data.unshift({id:Date.now()+'-'+Math.random().toString(16).slice(2,6),type,...obj,created:new Date().toISOString()});save()}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('hidden',x.id!==b.dataset.tab));if(b.dataset.tab==='history')renderRecords()});
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('hidden',x.id!==b.dataset.tab));if(['income','expense','loan'].includes(b.dataset.tab)){const form=document.getElementById(b.dataset.tab+'Form');if(form&&form.elements.date)form.elements.date.value=today()}if(b.dataset.tab==='history')renderRecords()});
 document.getElementById('incomeForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);add('income',{amount:+f.get('amount'),date:f.get('date'),note:f.get('note')});e.target.reset();e.target.elements.date.value=today();alert('آمدنی محفوظ ہوگئی');};
 document.getElementById('expenseForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);add('expense',{amount:+f.get('amount'),date:f.get('date'),category:f.get('category'),method:f.get('method'),note:f.get('note')});e.target.reset();e.target.elements.date.value=today();alert('خرچ محفوظ ہوگیا');};
 document.getElementById('loanForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),personName=f.get('person').trim();if(!personName){alert('شخص کا نام درج کریں');return}if(!data.some(x=>x.type==='person'&&normName(x.name||x.person)===normName(personName))){data.unshift({id:'person-auto-'+Date.now()+'-'+Math.random().toString(16).slice(2,6),type:'person',name:personName,person:personName,phone:'',address:'',created:new Date().toISOString()})}data.unshift({id:Date.now()+'-'+Math.random().toString(16).slice(2,6),type:'loan',kind:f.get('kind'),amount:+f.get('amount'),person:personName,date:f.get('date'),note:f.get('note'),created:new Date().toISOString()});save();e.target.reset();e.target.elements.date.value=today();alert('اندراج محفوظ ہوگیا اور شخص کا کھاتہ اپڈیٹ ہوگیا');};
