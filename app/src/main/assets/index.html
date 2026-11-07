@@ -258,7 +258,7 @@ document.getElementById('pinSubmit').onclick=()=>{
  const v=pinInput.value;
  if(!/^\d{4,6}$/.test(v)){alert('4 سے 6 ہندسوں کا PIN درج کریں');return}
  if(pinMode==='setup'){localStorage.setItem(PINKEY,v);pinMode='unlock';gate.style.display='none';document.body.classList.remove('pin-locked');}
- else if(v===localStorage.getItem(PINKEY)){gate.style.display='none';}
+ else if(v===localStorage.getItem(PINKEY)){gate.style.display='none';document.body.classList.remove('pin-locked');}
  else{alert('PIN درست نہیں ہے');pinInput.value='';}
 };
 pinInput.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('pinSubmit').click()});
