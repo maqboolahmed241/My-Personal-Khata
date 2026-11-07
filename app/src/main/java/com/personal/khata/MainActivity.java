@@ -102,6 +102,31 @@ public class MainActivity extends Activity {
             });
         }
         @JavascriptInterface
+        public void shareWhatsAppToNumber(String phone, String title, String text) {
+            runOnUiThread(() -> {
+                try {
+                    String number = phone == null ? "" : phone.replaceAll("[^0-9]", "");
+                    if (number.startsWith("00")) number = number.substring(2);
+                    if (number.startsWith("0")) number = "92" + number.substring(1);
+                    if (number.length() < 10) {
+                        Toast.makeText(MainActivity.this, "درست موبائل نمبر محفوظ کریں", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    String url = "https://wa.me/" + number + "?text=" + Uri.encode(text == null ? "" : text);
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    intent.setPackage("com.whatsapp");
+                    try { startActivity(intent); }
+                    catch (Exception noWhatsApp) {
+                        Intent fallback = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(fallback);
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "واٹس ایپ نہیں کھل سکا", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void sendSms(String phone, String text) {
             runOnUiThread(() -> { try { Intent i = new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + Uri.encode(phone))); i.putExtra("sms_body", text); startActivity(i); } catch (Exception e) { Toast.makeText(MainActivity.this, "SMS ایپ نہیں کھل سکی", Toast.LENGTH_LONG).show(); } });
         }
