@@ -1,6 +1,7 @@
 package com.personal.khata;
 
 import android.app.Activity;
+import android.print.PrintManager;
 import android.os.Bundle;
 import android.os.Build;
 import android.webkit.WebChromeClient;
@@ -93,6 +94,21 @@ public class MainActivity extends Activity {
             });
         }
 
+        @JavascriptInterface
+        public void shareWhatsApp(String title, String text) {
+            runOnUiThread(() -> {
+                try { Intent i = new Intent(Intent.ACTION_SEND); i.setType("text/plain"); i.putExtra(Intent.EXTRA_SUBJECT, title); i.putExtra(Intent.EXTRA_TEXT, text); i.setPackage("com.whatsapp"); startActivity(i); }
+                catch (Exception e) { try { Intent i = new Intent(Intent.ACTION_SEND); i.setType("text/plain"); i.putExtra(Intent.EXTRA_TEXT, text); startActivity(Intent.createChooser(i, "رپورٹ شیئر کریں")); } catch (Exception ignored) { Toast.makeText(MainActivity.this, "شیئرنگ ایپ دستیاب نہیں", Toast.LENGTH_LONG).show(); } }
+            });
+        }
+        @JavascriptInterface
+        public void sendSms(String phone, String text) {
+            runOnUiThread(() -> { try { Intent i = new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + Uri.encode(phone))); i.putExtra("sms_body", text); startActivity(i); } catch (Exception e) { Toast.makeText(MainActivity.this, "SMS ایپ نہیں کھل سکی", Toast.LENGTH_LONG).show(); } });
+        }
+        @JavascriptInterface
+        public void printReport(String text) {
+            runOnUiThread(() -> { try { PrintManager m = (PrintManager)getSystemService(PRINT_SERVICE); m.print("My Personal Khata", webView.createPrintDocumentAdapter("My-Personal-Khata-Report"), new android.print.PrintAttributes.Builder().build()); } catch (Exception e) { Toast.makeText(MainActivity.this, "پرنٹ نہیں کھل سکا", Toast.LENGTH_LONG).show(); } });
+        }
         @JavascriptInterface
         public void pickContact() {
             runOnUiThread(() -> {
