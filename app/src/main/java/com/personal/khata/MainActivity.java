@@ -13,6 +13,9 @@ import android.content.Intent;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.provider.DocumentsContract;
+import android.provider.ContactsContract;
+import android.database.Cursor;
+import org.json.JSONObject;
 import android.widget.Toast;
 import android.graphics.Color;
 import android.content.SharedPreferences;
@@ -24,6 +27,7 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> fileCallback;
     private static final int FILE_CHOOSER_REQUEST = 101;
     private static final int BACKUP_FOLDER_REQUEST = 102;
+    private static final int CONTACT_PICKER_REQUEST = 103;
     private static final String PREFS = "khata_settings";
     private static final String BACKUP_TREE_URI = "backup_tree_uri";
     private String pendingBackupContent;
@@ -88,6 +92,18 @@ public class MainActivity extends Activity {
                 openBackupFolderPicker();
             });
         }
+
+        @JavascriptInterface
+        public void pickContact() {
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
+                    startActivityForResult(intent, CONTACT_PICKER_REQUEST);
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "رابطہ فہرست نہیں کھل سکی", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
     }
 
     private void saveBackupOrAskForFolder() {
@@ -142,6 +158,31 @@ public class MainActivity extends Activity {
             Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
             fileCallback.onReceiveValue(results);
             fileCallback = null;
+        } else if (requestCode == CONTACT_PICKER_REQUEST) {
+            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+                String name = "";
+                String phone = "";
+                Cursor cursor = null;
+                try {
+                    cursor = getContentResolver().query(data.getData(),
+                            new String[]{ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                                    ContactsContract.CommonDataKinds.Phone.NUMBER},
+                            null, null, null);
+                    if (cursor != null && cursor.moveToFirst()) {
+                        name = cursor.getString(0);
+                        phone = cursor.getString(1);
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(this, "رابطہ پڑھنے میں مسئلہ ہوا", Toast.LENGTH_LONG).show();
+                } finally {
+                    if (cursor != null) cursor.close();
+                }
+                if (webView != null) {
+                    String js = "window.onNativeContactPicked(" + JSONObject.quote(name == null ? "" : name)
+                            + "," + JSONObject.quote(phone == null ? "" : phone) + ")";
+                    webView.evaluateJavascript(js, null);
+                }
+            }
         } else if (requestCode == BACKUP_FOLDER_REQUEST) {
             if (resultCode == RESULT_OK && data != null && data.getData() != null) {
                 Uri treeUri = data.getData();
