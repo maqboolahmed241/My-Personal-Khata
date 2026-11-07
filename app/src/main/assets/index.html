@@ -68,7 +68,7 @@ body.pin-locked header,body.pin-locked main{display:none!important}#pinGate{posi
 <div class="grid"><div><label>نام یا نمبر تلاش کریں</label><input id="peopleSearch" placeholder="تلاش کریں..."></div><div><label>فولڈر کی ترتیب</label><select id="peopleFilter"><option value="all">تمام کھاتے</option><option value="receivable">مجھے وصول کرنا ہے</option><option value="payable">مجھے ادا کرنا ہے</option></select></div></div>
 <div id="peopleSummary" class="cards"></div><div id="peopleList"></div><div id="personDetail" class="hidden"></div></section>
 <section id="history" class="tab panel hidden"><h2>تمام ریکارڈ</h2><input id="search" placeholder="نام، تفصیل یا کیٹیگری تلاش کریں"><div class="actions"><button id="reportPrint">رپورٹ / پرنٹ</button><button id="reportShare">WhatsApp پر شیئر</button><button id="reportDownload">رپورٹ TXT محفوظ کریں</button></div><div id="records"></div></section>
-<section id="backup" class="tab panel hidden"><h2>بیک اپ اور بحالی</h2><p>بیک اپ فائل اپنے موبائل میں محفوظ کریں۔ بعد میں اسی فائل کو درآمد کرکے ریکارڈ واپس لایا جا سکتا ہے۔</p><div class="actions"><button class="primary" id="export">بیک اپ فائل محفوظ کریں</button><label class="btn">بیک اپ واپس لائیں<input id="import" type="file" accept="application/json" style="display:none"></label></div><p class="notice">Google Drive کے لیے ابھی فائل کو Drive ایپ میں اپ لوڈ کریں۔ براہِ راست خودکار Drive بیک اپ اس ابتدائی ورژن میں شامل نہیں، اس کے لیے Google کی اجازت اور Android integration درکار ہے۔ اپنی بیک اپ فائل کسی کے ساتھ شیئر نہ کریں۔</p><div class="actions"><button id="changePin">اپنا PIN تبدیل کریں</button><button id="clear">تمام ریکارڈ مٹائیں</button></div></section>
+<section id="backup" class="tab panel hidden"><h2>بیک اپ اور بحالی</h2><p>بیک اپ فائل اپنے موبائل میں محفوظ کریں۔ بعد میں اسی فائل کو درآمد کرکے ریکارڈ واپس لایا جا سکتا ہے۔</p><div class="actions"><button class="primary" id="export">بیک اپ فائل محفوظ کریں</button><button type="button" id="chooseBackupFolder">بیک اپ فولڈر منتخب کریں</button><label class="btn">بیک اپ واپس لائیں<input id="import" type="file" accept="application/json" style="display:none"></label></div><p class="notice">Google Drive کے لیے ابھی فائل کو Drive ایپ میں اپ لوڈ کریں۔ براہِ راست خودکار Drive بیک اپ اس ابتدائی ورژن میں شامل نہیں، اس کے لیے Google کی اجازت اور Android integration درکار ہے۔ اپنی بیک اپ فائل کسی کے ساتھ شیئر نہ کریں۔</p><div class="actions"><button id="changePin">اپنا PIN تبدیل کریں</button><button id="clear">تمام ریکارڈ مٹائیں</button></div></section>
 </main>
 <script>
 const KEY='myPersonalKhataV1';let data=JSON.parse(localStorage.getItem(KEY)||'[]');
@@ -109,27 +109,30 @@ function kindName(x){return x.type==='income'?'آمدنی':x.type==='expense'?'�
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function renderRecords(){let q=(document.getElementById('search')?.value||'').toLowerCase();let arr=data.filter(x=>x.type!=='person'&&JSON.stringify(x).toLowerCase().includes(q));document.getElementById('records').innerHTML=entriesHTML(arr.map(x=>({...x,note:kindName(x)+' — '+(x.note||'')})))}
 document.getElementById('search').oninput=renderRecords;
+document.getElementById('chooseBackupFolder').onclick=()=>{
+ try{if(window.KhataBridge&&KhataBridge.chooseBackupFolder){KhataBridge.chooseBackupFolder();return;}alert('فولڈر منتخب کرنے کی سہولت صرف انسٹال شدہ APK میں دستیاب ہے۔');}
+ catch(err){console.error('Backup folder picker failed',err);alert('بیک اپ فولڈر منتخب نہیں ہو سکا۔')}
+};
 document.getElementById('export').onclick=async()=>{
  try{
   const payload=JSON.stringify({app:'My Personal Khata',version:1,exportedAt:new Date().toISOString(),records:data},null,2);
   const filename='My-Personal-Khata-Backup-'+today()+'.json';
+  // In the Android APK, save through the native folder system first.
+  if(window.KhataBridge&&KhataBridge.saveBackup){KhataBridge.saveBackup(payload,filename);return;}
   const blob=new Blob([payload],{type:'application/json'});
-  // Prefer Android's native file picker where supported, so the user chooses a folder.
   if(window.isSecureContext && typeof window.showSaveFilePicker==='function'){
    const handle=await window.showSaveFilePicker({suggestedName:filename,types:[{description:'Khata backup (JSON)',accept:{'application/json':['.json']}}]});
    const writable=await handle.createWritable();await writable.write(blob);await writable.close();
    alert('بیک اپ آپ کے منتخب کردہ فولڈر میں محفوظ ہوگیا۔');return;
   }
-  // On Android, share the actual backup file so Drive or Files can be selected.
   const file=new File([blob],filename,{type:'application/json'});
   if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
    await navigator.share({title:'My Personal Khata Backup',text:'اپنے کھاتہ کا بیک اپ محفوظ کریں۔',files:[file]});
    alert('اگر آپ نے Save to Drive یا Files منتخب کیا ہے تو بیک اپ وہاں محفوظ کر لیں۔');return;
   }
-  // Fallback for browsers without file picker or file sharing support.
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
   alert('بیک اپ ڈاؤن لوڈ شروع ہوگیا۔ موبائل کے Downloads فولڈر میں فائل دیکھیں۔');
- }catch(err){if(err&&err.name==='AbortError')return;console.error('Backup export failed',err);alert('بیک اپ محفوظ نہیں ہو سکا۔ ایپ کو Chrome میں کھول کر دوبارہ کوشش کریں، یا اسکرین شاٹ بھیجیں۔')}
+ }catch(err){if(err&&err.name==='AbortError')return;console.error('Backup export failed',err);alert('بیک اپ محفوظ نہیں ہو سکا۔ دوبارہ کوشش کریں یا اسکرین شاٹ بھیجیں۔')}
 };
 document.getElementById('import').onchange=async e=>{try{const f=e.target.files&&e.target.files[0];if(!f)return;const o=JSON.parse(await f.text());if(!o||!Array.isArray(o.records)||!o.records.every(x=>x&&typeof x==='object'&&(x.type==='person'||Number.isFinite(Number(x.amount)))))throw Error('invalid');const mode=confirm('OK دبائیں: موجودہ ریکارڈ کی جگہ بیک اپ لائیں۔ Cancel دبائیں: بیک اپ ریکارڈ موجودہ ریکارڈ میں شامل کریں۔');if(mode){data=o.records;}else{const seen=new Set(data.map(x=>x.id));data=[...o.records.filter(x=>!x.id||!seen.has(x.id)),...data];}save();alert('بیک اپ بحال ہوگیا')}catch(err){alert('یہ درست My Personal Khata بیک اپ فائل نہیں ہے')}finally{e.target.value=''}};
 document.getElementById('clear').onclick=()=>{if(confirm('کیا واقعی تمام ریکارڈ مٹانا چاہتے ہیں؟ پہلے بیک اپ بنا لیں۔')){data=[];save()}};
