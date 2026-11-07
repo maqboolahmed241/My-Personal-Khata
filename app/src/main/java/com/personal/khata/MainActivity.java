@@ -107,7 +107,23 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface
         public void printReport(String text) {
-            runOnUiThread(() -> { try { PrintManager m = (PrintManager)getSystemService(PRINT_SERVICE); m.print("My Personal Khata", webView.createPrintDocumentAdapter("My-Personal-Khata-Report"), new android.print.PrintAttributes.Builder().build()); } catch (Exception e) { Toast.makeText(MainActivity.this, "پرنٹ نہیں کھل سکا", Toast.LENGTH_LONG).show(); } });
+            runOnUiThread(() -> {
+                try {
+                    final WebView printView = new WebView(MainActivity.this);
+                    printView.setBackgroundColor(Color.WHITE);
+                    printView.setWebViewClient(new WebViewClient() {
+                        @Override public void onPageFinished(WebView view, String url) {
+                            try {
+                                PrintManager manager = (PrintManager)getSystemService(PRINT_SERVICE);
+                                manager.print("My Personal Khata", view.createPrintDocumentAdapter("Khata-Report"), new android.print.PrintAttributes.Builder().build());
+                            } catch (Exception e) { Toast.makeText(MainActivity.this, "پرنٹ نہیں کھل سکا", Toast.LENGTH_LONG).show(); }
+                        }
+                    });
+                    String safe = android.text.TextUtils.htmlEncode(text == null ? "" : text);
+                    String page = "<html lang='ur' dir='rtl'><meta charset='utf-8'><body style='font-family:sans-serif;padding:24px;white-space:pre-wrap;line-height:1.8'>" + safe + "</body></html>";
+                    printView.loadDataWithBaseURL(null, page, "text/html", "UTF-8", null);
+                } catch (Exception e) { Toast.makeText(MainActivity.this, "پرنٹ نہیں کھل سکا", Toast.LENGTH_LONG).show(); }
+            });
         }
         @JavascriptInterface
         public void pickContact() {
